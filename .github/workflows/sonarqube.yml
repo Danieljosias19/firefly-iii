@@ -1,0 +1,31 @@
+name: SonarQube Analysis
+on:
+  push:
+    branches: [ ci-sonar ]
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: bcmath, intl, pdo_sqlite, zip, gd
+          coverage: pcov
+      - name: Preparar entorno
+        run: cp .env.example .env
+      - name: Instalar dependencias
+        run: composer install --no-interaction --prefer-dist
+      - name: Claves de Passport
+        run: php artisan passport:keys --force
+        continue-on-error: true
+      - name: Pruebas con cobertura
+        run: vendor/bin/phpunit -c phpunit.cov.xml --coverage-clover=coverage.xml
+        continue-on-error: true
+      - name: Analisis SonarQube
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
